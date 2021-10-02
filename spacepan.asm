@@ -59,9 +59,7 @@ spritex     .fill 8
 spritey     .fill 8
 spritecol   .fill 8
 
-r_seed      .byte ?
-r_rept      .byte ?
-r_val       .byte ?
+r_val       .fill 8
 
 
 ;;;;;general game vars
@@ -241,7 +239,10 @@ palfreqtbl  .binary "music/palfreq"
             sta $01
             
             lda $dc04
-            sta r_val
+            bne +
+            lda #$5a
++           sta r_val
+            
             lda $02a6
             and #1
             sta $02a6
@@ -277,7 +278,6 @@ palfreqtbl  .binary "music/palfreq"
             sta $ffff
             lda #$00
             sta $d012
-            sta r_seed
             sta soundqueue
             sta soundmute
             sta pauseflag
@@ -2622,6 +2622,8 @@ _noenemy
             
             
             ; ............ CUSTOM, pause game
+            jsr rand
+            
             bit key+7
             bpl _nopause
             lda #1
@@ -3093,7 +3095,6 @@ _startmainanim
             lda #$b4
             jsr waitgames
             
-            
 _nooxydeath 
             ; ------- $a16a - take a life, see if it's game over
             lda #0
@@ -3117,6 +3118,8 @@ _nooxydeath
             jsr copystring
             lda #$bb
             jsr waitgames
+            lda g_flags
+            and #1
 _notgameover
             ;$a1bc - not game over, see if we can switch player
             eor #1
@@ -3790,26 +3793,38 @@ screenon    lda #$17
 screenoff   lda #$07
 screenset   sta d011_mir
 waitframe   lda framecnt
--           cmp framecnt
+-           pha
+            jsr rand
+            pla
+            cmp framecnt
             beq -
             rts
             
 waitframes  clc
             adc framecnt
--           cmp framecnt
+-           pha
+            jsr rand
+            pla
+            cmp framecnt
             bne -
             rts
             
             
             
 waitgame    lda gamecnt
--           cmp gamecnt
+-           pha
+            jsr rand
+            pla
+            cmp gamecnt
             beq -
             rts
             
 waitgames   clc
             adc gamecnt
--           cmp gamecnt
+-           pha
+            jsr rand
+            pla
+            cmp gamecnt
             bne -
             rts
             
@@ -3859,22 +3874,15 @@ cleargamescreen
             rts
             
             
-rand    ldy r_seed
-        dec r_rept
-        bne ++
-        dey
-        bpl +
-        ldy #len(_seedtbl)-1
-+       sty r_seed
-+       lda r_val
-        beq +
-        asl
-        beq ++
-        bcc ++
-+       eor _seedtbl,y
+rand    lda r_val
+        lsr
+        .for i = 1, i < 8, i=i+1
+            ror r_val+i
+        .next
+        bcc +
+        eor #$d8
 +       sta r_val
         rts
-_seedtbl .byte $f5,$e7,$cf,$c3,$a9,$8d,$87,$71,$69,$65,$63,$5f,$4d,$2f,$2b,$1d
             
             
             
